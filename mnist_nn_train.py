@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow_core.examples.tutorials.mnist import input_data
+from top_k_array import get_top_k_array
 
 def get_top_k(t, k):
 	if len(t.shape) == 1:
@@ -41,16 +42,16 @@ w = tf.trainable_variables()[0]
 grads_vars = train_op.compute_gradients(cross_entropy_loss, var_list=[w])
 
 
-for i, (g, v) in enumerate(grads_vars):
+# for i, (g, v) in enumerate(grads_vars):
     # import pdb; pdb.set_trace()
-    if len(g.shape) == 2:
-        g_size = 1
-        g_shape = g.get_shape().as_list()
-        for j in g_shape:
-            g_size *= j
-        top_k_size = int(g_size * 1)
-        g_top_k = get_top_k(g, top_k_size)
-        grads_vars[i] = (g_top_k, v)
+    # if len(g.shape) == 2:
+    #     g_size = 1
+    #     g_shape = g.get_shape().as_list()
+    #     for j in g_shape:
+    #         g_size *= j
+    #     top_k_size = int(g_size * 1)
+    #     g_top_k = get_top_k(g, top_k_size)
+    #     grads_vars[i] = (g_top_k, v)
     # if len(v.shape) == 2:
     #     v_size = 1
     #     v_shape = v.get_shape().as_list()
@@ -68,7 +69,13 @@ with tf.Session() as sess:
     for i in range(1000):
         x_batch, y_batch = mnist.train.next_batch(128)
         _, gradvar, loss = sess.run([opt, grads_vars, cross_entropy_loss], {features: x_batch, labels: y_batch})
-
+        all_vars = tf.trainable_variables()
+        for j, k in enumerate(zip(all_vars, gradvar)):
+            if j % 2 == 0:
+                var, gv = k
+                g, v = gv
+                v = get_top_k_array(v, 0.1)
+                var.load(v, sess)
         if i % 100 == 0:
             print("The %s-th steps, loss = %f" % (i, loss))
 
